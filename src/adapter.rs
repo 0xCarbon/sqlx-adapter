@@ -217,14 +217,13 @@ impl Adapter for SqlxAdapter {
                 rules.extend(new_rules);
             }
         }
-        adapter::save_policy(&self.pool, rules).await
+        adapter::save_policy(&self.pool, &self.table_name, rules).await
     }
 
     async fn add_policy(&mut self, _sec: &str, ptype: &str, rule: Vec<String>) -> Result<bool> {
         if let Some(new_rule) = self.save_policy_line(ptype, rule.as_slice()) {
-            return adapter::add_policy(&self.pool, new_rule).await;
+            return adapter::add_policy(&self.pool, &self.table_name, new_rule).await;
         }
-
         Ok(false)
     }
 
@@ -239,7 +238,7 @@ impl Adapter for SqlxAdapter {
             .filter_map(|x| self.save_policy_line(ptype, x))
             .collect::<Vec<NewCasbinRule>>();
 
-        adapter::add_policies(&self.pool, new_rules).await
+        adapter::add_policies(&self.pool, &self.table_name, new_rules).await
     }
 
     async fn remove_policy(&mut self, _sec: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
@@ -270,7 +269,7 @@ impl Adapter for SqlxAdapter {
     }
 
     async fn clear_policy(&mut self) -> Result<()> {
-        adapter::clear_policy(&self.pool).await
+        adapter::clear_policy(&self.pool, &self.table_name).await
     }
 
     fn is_filtered(&self) -> bool {
