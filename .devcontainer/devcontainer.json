@@ -3,17 +3,24 @@
     "dockerComposeFile": "docker-compose.yml",
     "service": "dev",
     "workspaceFolder": "/workspace",
-    
+
     "customizations": {
         "vscode": {
             "extensions": [
                 "rust-lang.rust-analyzer",
                 "serayuzgur.crates",
                 "vadimcn.vscode-lldb",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "streetsidesoftware.code-spell-checker",
+                "ms-azuretools.vscode-docker"
             ],
             "settings": {
-                "rust-analyzer.checkOnSave.command": "clippy"
+                "rust-analyzer.checkOnSave.command": "clippy",
+                "rust-analyzer.checkOnSave.extraArgs": ["--", "-W", "clippy::all"],
+                "rust-analyzer.cargo.features": "all",
+                "editor.formatOnSave": true,
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true
             }
         }
     },
@@ -22,10 +29,19 @@
         "ghcr.io/devcontainers/features/common-utils:2": {
             "installZsh": true,
             "configureZshAsDefaultShell": true,
-            "username": "vscode"
+            "username": "vscode",
+            "upgradePackages": true
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest",
+            "ppa": false
         }
     },
 
     "postCreateCommand": "cargo build",
-    "remoteUser": "vscode"
-} 
+    "remoteUser": "vscode",
+
+    "remoteEnv": {
+        "RUST_BACKTRACE": "1"
+    }
+}

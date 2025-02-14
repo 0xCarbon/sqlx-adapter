@@ -8,11 +8,16 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         sqlite3 \
         pkg-config \
         libssl-dev \
+        git \
+        curl \
+        lld \
+        # Add build essentials for potential native dependencies
+        build-essential \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust components
-RUN rustup component add rustfmt clippy
+RUN rustup component add rustfmt clippy rust-src
 
 # Create non-root user
 ARG USERNAME=vscode
@@ -26,10 +31,14 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
-# Create test helper script
+# Create test helper script with improved formatting
 RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Running PostgreSQL tests..."\n\
 cargo test --features postgres -- --test-threads=1\n\
+echo "Running MySQL tests..."\n\
 cargo test --features mysql -- --test-threads=1\n\
+echo "Running SQLite tests..."\n\
 cargo test --features sqlite -- --test-threads=1\n\
 ' > /usr/local/bin/test-all && chmod +x /usr/local/bin/test-all
 
@@ -39,5 +48,5 @@ WORKDIR /workspace
 # Switch to non-root user
 USER $USERNAME
 
-# Pre-fetch dependencies
-RUN cargo install cargo-watch 
+# Pre-fetch dependencies and install useful cargo tools
+RUN cargo install cargo-watch cargo-edit cargo-update 

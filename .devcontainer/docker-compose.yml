@@ -7,16 +7,21 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ..:/workspace:cached
+      - cargo-cache:/usr/local/cargo/registry
     command: sleep infinity
     environment:
       - POSTGRES_URL=postgres://casbin_rs:casbin_rs@postgres:5432/casbin
       - MYSQL_URL=mysql://casbin_rs:casbin_rs@mysql:3306/casbin
       - SQLITE_URL=sqlite:casbin.db
+      - RUST_BACKTRACE=1
     depends_on:
       postgres:
         condition: service_healthy
       mysql:
         condition: service_healthy
+    # Add resource limits
+    mem_limit: 4g
+    mem_reservation: 1g
 
   postgres:
     image: postgres:latest
@@ -30,6 +35,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # Add resource limits
+    mem_limit: 1g
 
   mysql:
     image: mysql:8.0
@@ -44,6 +53,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # Add resource limits
+    mem_limit: 1g
+
+volumes:
+  cargo-cache:
+  postgres-data:
+  mysql-data:
 
 networks:
   default:
