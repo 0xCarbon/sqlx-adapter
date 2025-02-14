@@ -38,7 +38,8 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
                     v5 VARCHAR NOT NULL,
                     CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                     );
-        ", table_name
+        ",
+        table_name
     ))
     .execute(conn)
     .await
@@ -46,7 +47,10 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
 }
 
 #[cfg(feature = "sqlite")]
-pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Result<SqliteQueryResult> {
+pub async fn new_with_table_name(
+    conn: &ConnectionPool,
+    table_name: &str,
+) -> Result<SqliteQueryResult> {
     sqlx::query(&format!(
         "CREATE TABLE IF NOT EXISTS {} (
                     id SERIAL PRIMARY KEY,
@@ -59,7 +63,8 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
                     v5 VARCHAR NOT NULL,
                     CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                     );
-        ", table_name
+        ",
+        table_name
     ))
     .execute(conn)
     .await
@@ -67,7 +72,10 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
 }
 
 #[cfg(feature = "mysql")]
-pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Result<MySqlQueryResult> {
+pub async fn new_with_table_name(
+    conn: &ConnectionPool,
+    table_name: &str,
+) -> Result<MySqlQueryResult> {
     sqlx::query(&format!(
         "CREATE TABLE IF NOT EXISTS {} (
                     id INT NOT NULL AUTO_INCREMENT,
@@ -80,7 +88,8 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
                     v5 VARCHAR(128) NOT NULL,
                     PRIMARY KEY(id),
                     CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;", table_name
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;",
+        table_name
     ))
     .execute(conn)
     .await
@@ -104,7 +113,12 @@ pub async fn new(conn: &ConnectionPool) -> Result<MySqlQueryResult> {
 }
 
 #[cfg(feature = "postgres")]
-pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
+pub async fn remove_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    pt: &str,
+    rule: Vec<String>,
+) -> Result<bool> {
     let rule = normalize_casbin_rule(rule);
     sqlx::query(&format!(
         "DELETE FROM {} WHERE
@@ -114,7 +128,8 @@ pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, ru
                     v2 = $4 AND
                     v3 = $5 AND
                     v4 = $6 AND
-                    v5 = $7", table_name
+                    v5 = $7",
+        table_name
     ))
     .bind(pt)
     .bind(&rule[0])
@@ -130,7 +145,12 @@ pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, ru
 }
 
 #[cfg(feature = "sqlite")]
-pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
+pub async fn remove_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    pt: &str,
+    rule: Vec<String>,
+) -> Result<bool> {
     let rule = normalize_casbin_rule(rule);
     sqlx::query(&format!(
         "DELETE FROM {} WHERE
@@ -140,7 +160,8 @@ pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, ru
                     v2 = $4 AND
                     v3 = $5 AND
                     v4 = $6 AND
-                    v5 = $7", table_name
+                    v5 = $7",
+        table_name
     ))
     .bind(pt)
     .bind(&rule[0])
@@ -156,7 +177,12 @@ pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, ru
 }
 
 #[cfg(feature = "mysql")]
-pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
+pub async fn remove_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    pt: &str,
+    rule: Vec<String>,
+) -> Result<bool> {
     let rule = normalize_casbin_rule(rule);
     sqlx::query(&format!(
         "DELETE FROM {} WHERE
@@ -166,7 +192,8 @@ pub async fn remove_policy(conn: &ConnectionPool, table_name: &str, pt: &str, ru
                     v2 = ? AND
                     v3 = ? AND
                     v4 = ? AND
-                    v5 = ?", table_name
+                    v5 = ?",
+        table_name
     ))
     .bind(pt)
     .bind(&rule[0])
@@ -202,7 +229,8 @@ pub async fn remove_policies(
                     v2 = $4 AND
                     v3 = $5 AND
                     v4 = $6 AND
-                    v5 = $7", table_name
+                    v5 = $7",
+            table_name
         ))
         .bind(pt)
         .bind(&rule[0])
@@ -250,7 +278,8 @@ pub async fn remove_policies(
                     v2 = $4 AND
                     v3 = $5 AND
                     v4 = $6 AND
-                    v5 = $7", table_name
+                    v5 = $7",
+            table_name
         ))
         .bind(pt)
         .bind(&rule[0])
@@ -298,7 +327,8 @@ pub async fn remove_policies(
                     v2 = ? AND
                     v3 = ? AND
                     v4 = ? AND
-                    v5 = ?", table_name
+                    v5 = ?",
+            table_name
         ))
         .bind(pt)
         .bind(&rule[0])
@@ -723,7 +753,8 @@ pub(crate) async fn save_policy(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( $1, $2, $3, $4, $5, $6, $7 )", table_name
+                 VALUES ( $1, $2, $3, $4, $5, $6, $7 )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
@@ -769,7 +800,8 @@ pub(crate) async fn save_policy(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )", table_name
+                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
@@ -815,7 +847,8 @@ pub(crate) async fn save_policy(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( ?, ?, ?, ?, ?, ?, ? )", table_name
+                 VALUES ( ?, ?, ?, ?, ?, ?, ? )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
@@ -843,10 +876,15 @@ pub(crate) async fn save_policy(
 }
 
 #[cfg(feature = "postgres")]
-pub(crate) async fn add_policy(conn: &ConnectionPool, table_name: &str, rule: NewCasbinRule<'_>) -> Result<bool> {
+pub(crate) async fn add_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    rule: NewCasbinRule<'_>,
+) -> Result<bool> {
     sqlx::query(&format!(
         "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-             VALUES ( $1, $2, $3, $4, $5, $6, $7 )", table_name
+             VALUES ( $1, $2, $3, $4, $5, $6, $7 )",
+        table_name
     ))
     .bind(rule.ptype)
     .bind(rule.v0)
@@ -862,10 +900,15 @@ pub(crate) async fn add_policy(conn: &ConnectionPool, table_name: &str, rule: Ne
 }
 
 #[cfg(feature = "sqlite")]
-pub(crate) async fn add_policy(conn: &ConnectionPool, table_name: &str, rule: NewCasbinRule<'_>) -> Result<bool> {
+pub(crate) async fn add_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    rule: NewCasbinRule<'_>,
+) -> Result<bool> {
     sqlx::query(&format!(
         "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-             VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )", table_name
+             VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+        table_name
     ))
     .bind(rule.ptype)
     .bind(rule.v0)
@@ -881,10 +924,15 @@ pub(crate) async fn add_policy(conn: &ConnectionPool, table_name: &str, rule: Ne
 }
 
 #[cfg(feature = "mysql")]
-pub(crate) async fn add_policy(conn: &ConnectionPool, table_name: &str, rule: NewCasbinRule<'_>) -> Result<bool> {
+pub(crate) async fn add_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+    rule: NewCasbinRule<'_>,
+) -> Result<bool> {
     sqlx::query(&format!(
         "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-             VALUES ( ?, ?, ?, ?, ?, ?, ? )", table_name
+             VALUES ( ?, ?, ?, ?, ?, ?, ? )",
+        table_name
     ))
     .bind(rule.ptype)
     .bind(rule.v0)
@@ -940,7 +988,8 @@ pub(crate) async fn add_policies(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( $1, $2, $3, $4, $5, $6, $7 )", table_name
+                 VALUES ( $1, $2, $3, $4, $5, $6, $7 )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
@@ -981,7 +1030,8 @@ pub(crate) async fn add_policies(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )", table_name
+                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
@@ -1022,7 +1072,8 @@ pub(crate) async fn add_policies(
     for rule in rules {
         sqlx::query(&format!(
             "INSERT INTO {} ( ptype, v0, v1, v2, v3, v4, v5 )
-                 VALUES ( ?, ?, ?, ?, ?, ?, ? )", table_name
+                 VALUES ( ?, ?, ?, ?, ?, ?, ? )",
+            table_name
         ))
         .bind(rule.ptype)
         .bind(rule.v0)
