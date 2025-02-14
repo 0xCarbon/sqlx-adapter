@@ -38,3 +38,10 @@ pub(crate) struct NewCasbinRule<'a> {
     pub v4: &'a str,
     pub v5: &'a str,
 }
+
+#[derive(Clone)]
+pub struct SqlxAdapter {
+    pool: adapter::ConnectionPool,
+    is_filtered: Arc<AtomicBool>,
+    table_name: String,
+}

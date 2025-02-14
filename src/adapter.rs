@@ -21,6 +21,7 @@ use sqlx::sqlite::SqlitePoolOptions;
 pub struct SqlxAdapter {
     pool: adapter::ConnectionPool,
     is_filtered: Arc<AtomicBool>,
+    table_name: String,
 }
 
 //pub const TABLE_NAME: &str = "casbin_rule";
@@ -50,16 +51,26 @@ impl<'a> SqlxAdapter {
             .await
             .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
-        adapter::new(&pool).await.map(|_| Self {
+        adapter::new(&pool, "casbin_rule").await.map(|_| Self {
             pool,
             is_filtered: Arc::new(AtomicBool::new(false)),
+            table_name: "casbin_rule".to_string(),
         })
     }
 
     pub async fn new_with_pool(pool: adapter::ConnectionPool) -> Result<Self> {
-        adapter::new(&pool).await.map(|_| Self {
+        adapter::new(&pool, "casbin_rule").await.map(|_| Self {
             pool,
             is_filtered: Arc::new(AtomicBool::new(false)),
+            table_name: "casbin_rule".to_string(),
+        })
+    }
+
+    pub async fn new_with_table_name<U: Into<String>>(pool: adapter::ConnectionPool, table_name: &str) -> Result<Self> {
+        adapter::new(&pool, table_name).await.map(|_| Self {
+            pool,
+            is_filtered: Arc::new(AtomicBool::new(false)),
+            table_name: table_name.to_string(),
         })
     }
 
@@ -144,7 +155,7 @@ impl<'a> SqlxAdapter {
 #[async_trait]
 impl Adapter for SqlxAdapter {
     async fn load_policy(&mut self, m: &mut dyn Model) -> Result<()> {
-        let rules = adapter::load_policy(&self.pool).await?;
+        let rules = adapter::load_policy(&self.pool, &self.table_name).await?;
 
         for casbin_rule in &rules {
             let rule = self.load_policy_line(casbin_rule);
@@ -164,7 +175,7 @@ impl Adapter for SqlxAdapter {
     }
 
     async fn load_filtered_policy<'a>(&mut self, m: &mut dyn Model, f: Filter<'a>) -> Result<()> {
-        let rules = adapter::load_filtered_policy(&self.pool, &f).await?;
+        let rules = adapter::load_filtered_policy(&self.pool, &f, &self.table_name).await?;
         self.is_filtered.store(true, Ordering::SeqCst);
 
         for casbin_rule in &rules {
@@ -206,12 +217,12 @@ impl Adapter for SqlxAdapter {
                 rules.extend(new_rules);
             }
         }
-        adapter::save_policy(&self.pool, rules).await
+        adapter::save_policy(&self.pool, rules, &self.table_name).await
     }
 
     async fn add_policy(&mut self, _sec: &str, ptype: &str, rule: Vec<String>) -> Result<bool> {
         if let Some(new_rule) = self.save_policy_line(ptype, rule.as_slice()) {
-            return adapter::add_policy(&self.pool, new_rule).await;
+            return adapter::add_policy(&self.pool, new_rule, &self.table_name).await;
         }
 
         Ok(false)
@@ -228,11 +239,11 @@ impl Adapter for SqlxAdapter {
             .filter_map(|x| self.save_policy_line(ptype, x))
             .collect::<Vec<NewCasbinRule>>();
 
-        adapter::add_policies(&self.pool, new_rules).await
+        adapter::add_policies(&self.pool, new_rules, &self.table_name).await
     }
 
     async fn remove_policy(&mut self, _sec: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
-        adapter::remove_policy(&self.pool, pt, rule).await
+        adapter::remove_policy(&self.pool, pt, rule, &self.table_name).await
     }
 
     async fn remove_policies(
@@ -241,7 +252,7 @@ impl Adapter for SqlxAdapter {
         pt: &str,
         rules: Vec<Vec<String>>,
     ) -> Result<bool> {
-        adapter::remove_policies(&self.pool, pt, rules).await
+        adapter::remove_policies(&self.pool, pt, rules, &self.table_name).await
     }
 
     async fn remove_filtered_policy(
@@ -252,14 +263,14 @@ impl Adapter for SqlxAdapter {
         field_values: Vec<String>,
     ) -> Result<bool> {
         if field_index <= 5 && !field_values.is_empty() && field_values.len() + field_index <= 6 {
-            adapter::remove_filtered_policy(&self.pool, pt, field_index, field_values).await
+            adapter::remove_filtered_policy(&self.pool, pt, field_index, field_values, &self.table_name).await
         } else {
             Ok(false)
         }
     }
 
     async fn clear_policy(&mut self) -> Result<()> {
-        adapter::clear_policy(&self.pool).await
+        adapter::clear_policy(&self.pool, &self.table_name).await
     }
 
     fn is_filtered(&self) -> bool {
@@ -364,6 +375,57 @@ mod tests {
         };
 
         let adapter = SqlxAdapter::new_with_pool(pool).await.unwrap();
+
+        assert!(Enforcer::new(m, adapter).await.is_ok());
+    }
+
+    #[cfg_attr(
+        any(
+            feature = "runtime-async-std-native-tls",
+            feature = "runtime-async-std-rustls"
+        ),
+        async_std::test
+    )]
+    #[cfg_attr(
+        any(feature = "runtime-tokio-native-tls", feature = "runtime-tokio-rustls"),
+        tokio::test(flavor = "multi_thread")
+    )]
+    async fn test_create_with_table_name() {
+        use casbin::prelude::*;
+
+        let m = DefaultModel::from_file("examples/rbac_model.conf")
+            .await
+            .unwrap();
+        let pool = {
+            #[cfg(feature = "postgres")]
+            {
+                PgPoolOptions::new()
+                    .max_connections(8)
+                    .connect("postgres://casbin_rs:casbin_rs@localhost:5432/casbin")
+                    .await
+                    .unwrap()
+            }
+
+            #[cfg(feature = "mysql")]
+            {
+                MySqlPoolOptions::new()
+                    .max_connections(8)
+                    .connect("mysql://casbin_rs:casbin_rs@localhost:3306/casbin")
+                    .await
+                    .unwrap()
+            }
+
+            #[cfg(feature = "sqlite")]
+            {
+                SqlitePoolOptions::new()
+                    .max_connections(8)
+                    .connect("sqlite:casbin.db")
+                    .await
+                    .unwrap()
+            }
+        };
+
+        let adapter = SqlxAdapter::new_with_table_name(pool, "casbin_rule_custom").await.unwrap();
 
         assert!(Enforcer::new(m, adapter).await.is_ok());
     }
