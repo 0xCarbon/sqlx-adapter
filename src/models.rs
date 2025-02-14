@@ -1,4 +1,7 @@
 use sqlx::FromRow;
+use crate::adapter;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 #[allow(dead_code)]
 #[cfg(any(feature = "postgres", feature = "mysql"))]

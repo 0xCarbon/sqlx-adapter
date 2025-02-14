@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      - POSTGRES_URL=postgres://casbin_rs:casbin_rs@postgres:5432/casbin
+      - MYSQL_URL=mysql://casbin_rs:casbin_rs@mysql:3306/casbin
+      - SQLITE_URL=sqlite:casbin.db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: casbin_rs
+      POSTGRES_PASSWORD: casbin_rs
+      POSTGRES_DB: casbin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casbin_rs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: casbin_rs
+      MYSQL_USER: casbin_rs
+      MYSQL_PASSWORD: casbin_rs
+      MYSQL_DATABASE: casbin
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "casbin_rs", "-pcasbin_rs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  default:
+    name: sqlx-adapter-network 
