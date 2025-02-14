@@ -21,12 +21,21 @@ use sqlx::sqlite::SqlitePoolOptions;
 pub struct SqlxAdapter {
     pool: adapter::ConnectionPool,
     is_filtered: Arc<AtomicBool>,
+    table_name: String,
 }
 
 //pub const TABLE_NAME: &str = "casbin_rule";
 
 impl<'a> SqlxAdapter {
     pub async fn new<U: Into<String>>(url: U, pool_size: u32) -> Result<Self> {
+        Self::new_with_table_name(url, pool_size, "casbin_rule").await
+    }
+
+    pub async fn new_with_table_name<U: Into<String>>(
+        url: U,
+        pool_size: u32,
+        table_name: &str,
+    ) -> Result<Self> {
         dotenv().ok();
 
         #[cfg(feature = "postgres")]
@@ -50,17 +59,30 @@ impl<'a> SqlxAdapter {
             .await
             .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
-        adapter::new(&pool).await.map(|_| Self {
-            pool,
-            is_filtered: Arc::new(AtomicBool::new(false)),
-        })
+        adapter::new_with_table_name(&pool, table_name)
+            .await
+            .map(|_| Self {
+                pool,
+                is_filtered: Arc::new(AtomicBool::new(false)),
+                table_name: table_name.to_string(),
+            })
     }
 
     pub async fn new_with_pool(pool: adapter::ConnectionPool) -> Result<Self> {
-        adapter::new(&pool).await.map(|_| Self {
-            pool,
-            is_filtered: Arc::new(AtomicBool::new(false)),
-        })
+        Self::new_with_pool_and_table_name(pool, "casbin_rule").await
+    }
+
+    pub async fn new_with_pool_and_table_name(
+        pool: adapter::ConnectionPool,
+        table_name: &str,
+    ) -> Result<Self> {
+        adapter::new_with_table_name(&pool, table_name)
+            .await
+            .map(|_| Self {
+                pool,
+                is_filtered: Arc::new(AtomicBool::new(false)),
+                table_name: table_name.to_string(),
+            })
     }
 
     pub(crate) fn save_policy_line(
@@ -206,14 +228,13 @@ impl Adapter for SqlxAdapter {
                 rules.extend(new_rules);
             }
         }
-        adapter::save_policy(&self.pool, rules).await
+        adapter::save_policy(&self.pool, &self.table_name, rules).await
     }
 
     async fn add_policy(&mut self, _sec: &str, ptype: &str, rule: Vec<String>) -> Result<bool> {
         if let Some(new_rule) = self.save_policy_line(ptype, rule.as_slice()) {
-            return adapter::add_policy(&self.pool, new_rule).await;
+            return adapter::add_policy(&self.pool, &self.table_name, new_rule).await;
         }
-
         Ok(false)
     }
 
@@ -228,11 +249,11 @@ impl Adapter for SqlxAdapter {
             .filter_map(|x| self.save_policy_line(ptype, x))
             .collect::<Vec<NewCasbinRule>>();
 
-        adapter::add_policies(&self.pool, new_rules).await
+        adapter::add_policies(&self.pool, &self.table_name, new_rules).await
     }
 
     async fn remove_policy(&mut self, _sec: &str, pt: &str, rule: Vec<String>) -> Result<bool> {
-        adapter::remove_policy(&self.pool, pt, rule).await
+        adapter::remove_policy(&self.pool, &self.table_name, pt, rule).await
     }
 
     async fn remove_policies(
@@ -241,7 +262,7 @@ impl Adapter for SqlxAdapter {
         pt: &str,
         rules: Vec<Vec<String>>,
     ) -> Result<bool> {
-        adapter::remove_policies(&self.pool, pt, rules).await
+        adapter::remove_policies(&self.pool, &self.table_name, pt, rules).await
     }
 
     async fn remove_filtered_policy(
@@ -252,14 +273,21 @@ impl Adapter for SqlxAdapter {
         field_values: Vec<String>,
     ) -> Result<bool> {
         if field_index <= 5 && !field_values.is_empty() && field_values.len() + field_index <= 6 {
-            adapter::remove_filtered_policy(&self.pool, pt, field_index, field_values).await
+            adapter::remove_filtered_policy(
+                &self.pool,
+                &self.table_name,
+                pt,
+                field_index,
+                field_values,
+            )
+            .await
         } else {
             Ok(false)
         }
     }
 
     async fn clear_policy(&mut self) -> Result<()> {
-        adapter::clear_policy(&self.pool).await
+        adapter::clear_policy(&self.pool, &self.table_name).await
     }
 
     fn is_filtered(&self) -> bool {
