@@ -87,6 +87,7 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
     .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))
 }
 
+#[allow(dead_code)]
 #[cfg(feature = "postgres")]
 pub async fn new(conn: &ConnectionPool) -> Result<PgQueryResult> {
     new_with_table_name(conn, "casbin_rule").await
