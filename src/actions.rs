@@ -609,10 +609,14 @@ fn filtered_where_values<'a>(filter: &Filter<'a>) -> ([&'a str; 6], [&'a str; 6]
 }
 
 #[cfg(feature = "postgres")]
-pub(crate) async fn load_policy(conn: &ConnectionPool) -> Result<Vec<CasbinRule>> {
+pub(crate) async fn load_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+) -> Result<Vec<CasbinRule>> {
     let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
         CasbinRule,
-        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM casbin_rule"
+        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
+        table_name
     )
     .fetch_all(conn)
     .await
@@ -650,17 +654,19 @@ pub(crate) async fn load_policy(conn: &ConnectionPool) -> Result<Vec<CasbinRule>
 #[cfg(feature = "postgres")]
 pub(crate) async fn load_filtered_policy(
     conn: &ConnectionPool,
+    table_name: &str,
     filter: &Filter<'_>,
 ) -> Result<Vec<CasbinRule>> {
     let (g_filter, p_filter) = filtered_where_values(filter);
 
     let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
         CasbinRule,
-        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from  casbin_rule WHERE (
+        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from  {} WHERE (
             ptype LIKE 'g%' AND v0 LIKE $1 AND v1 LIKE $2 AND v2 LIKE $3 AND v3 LIKE $4 AND v4 LIKE $5 AND v5 LIKE $6 )
         OR (
             ptype LIKE 'p%' AND v0 LIKE $7 AND v1 LIKE $8 AND v2 LIKE $9 AND v3 LIKE $10 AND v4 LIKE $11 AND v5 LIKE $12 );
             ",
+            table_name,
             g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
             p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],)
     .fetch_all(conn)
