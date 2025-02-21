@@ -626,10 +626,14 @@ pub(crate) async fn load_policy(
 }
 
 #[cfg(feature = "sqlite")]
-pub(crate) async fn load_policy(conn: &ConnectionPool) -> Result<Vec<CasbinRule>> {
+pub(crate) async fn load_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+) -> Result<Vec<CasbinRule>> {
     let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
         CasbinRule,
-        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM casbin_rule"
+        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
+        table_name
     )
     .fetch_all(conn)
     .await
@@ -639,10 +643,14 @@ pub(crate) async fn load_policy(conn: &ConnectionPool) -> Result<Vec<CasbinRule>
 }
 
 #[cfg(feature = "mysql")]
-pub(crate) async fn load_policy(conn: &ConnectionPool) -> Result<Vec<CasbinRule>> {
+pub(crate) async fn load_policy(
+    conn: &ConnectionPool,
+    table_name: &str,
+) -> Result<Vec<CasbinRule>> {
     let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
         CasbinRule,
-        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM casbin_rule"
+        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
+        table_name
     )
     .fetch_all(conn)
     .await
