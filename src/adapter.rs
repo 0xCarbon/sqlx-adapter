@@ -166,7 +166,7 @@ impl<'a> SqlxAdapter {
 #[async_trait]
 impl Adapter for SqlxAdapter {
     async fn load_policy(&mut self, m: &mut dyn Model) -> Result<()> {
-        let rules = adapter::load_policy(&self.pool).await?;
+        let rules = adapter::load_policy(&self.pool, &self.table_name).await?;
 
         for casbin_rule in &rules {
             let rule = self.load_policy_line(casbin_rule);
@@ -186,7 +186,7 @@ impl Adapter for SqlxAdapter {
     }
 
     async fn load_filtered_policy<'a>(&mut self, m: &mut dyn Model, f: Filter<'a>) -> Result<()> {
-        let rules = adapter::load_filtered_policy(&self.pool, &f).await?;
+        let rules = adapter::load_filtered_policy(&self.pool, &self.table_name, &f).await?;
         self.is_filtered.store(true, Ordering::SeqCst);
 
         for casbin_rule in &rules {

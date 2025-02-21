@@ -613,11 +613,10 @@ pub(crate) async fn load_policy(
     conn: &ConnectionPool,
     table_name: &str,
 ) -> Result<Vec<CasbinRule>> {
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as(&format!(
         "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
         table_name
-    )
+    ))
     .fetch_all(conn)
     .await
     .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
@@ -630,14 +629,15 @@ pub(crate) async fn load_policy(
     conn: &ConnectionPool,
     table_name: &str,
 ) -> Result<Vec<CasbinRule>> {
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
+    let query = format!(
         "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
         table_name
-    )
-    .fetch_all(conn)
-    .await
-    .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
+    );
+
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(CasbinRule, &query)
+        .fetch_all(conn)
+        .await
+        .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
     Ok(casbin_rule)
 }
@@ -647,14 +647,15 @@ pub(crate) async fn load_policy(
     conn: &ConnectionPool,
     table_name: &str,
 ) -> Result<Vec<CasbinRule>> {
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
+    let query = format!(
         "SELECT id, ptype, v0, v1, v2, v3, v4, v5 FROM {}",
         table_name
-    )
-    .fetch_all(conn)
-    .await
-    .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
+    );
+
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(CasbinRule, &query)
+        .fetch_all(conn)
+        .await
+        .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
     Ok(casbin_rule)
 }
@@ -667,19 +668,31 @@ pub(crate) async fn load_filtered_policy(
 ) -> Result<Vec<CasbinRule>> {
     let (g_filter, p_filter) = filtered_where_values(filter);
 
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
-        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from  {} WHERE (
+    let query_string = format!(
+        "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from {} WHERE (
             ptype LIKE 'g%' AND v0 LIKE $1 AND v1 LIKE $2 AND v2 LIKE $3 AND v3 LIKE $4 AND v4 LIKE $5 AND v5 LIKE $6 )
         OR (
             ptype LIKE 'p%' AND v0 LIKE $7 AND v1 LIKE $8 AND v2 LIKE $9 AND v3 LIKE $10 AND v4 LIKE $11 AND v5 LIKE $12 );
             ",
-            table_name,
-            g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
-            p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],)
-    .fetch_all(conn)
-    .await
-    .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
+        table_name,
+    );
+
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as(&query_string)
+        .bind(g_filter[0])
+        .bind(g_filter[1])
+        .bind(g_filter[2])
+        .bind(g_filter[3])
+        .bind(g_filter[4])
+        .bind(g_filter[5])
+        .bind(p_filter[0])
+        .bind(p_filter[1])
+        .bind(p_filter[2])
+        .bind(p_filter[3])
+        .bind(p_filter[4])
+        .bind(p_filter[5])
+        .fetch_all(conn)
+        .await
+        .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
     Ok(casbin_rule)
 }
@@ -691,15 +704,17 @@ pub(crate) async fn load_filtered_policy(
 ) -> Result<Vec<CasbinRule>> {
     let (g_filter, p_filter) = filtered_where_values(filter);
 
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
+    let query_string = format!(
         "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from  casbin_rule WHERE (
             ptype LIKE 'g%' AND v0 LIKE $1 AND v1 LIKE $2 AND v2 LIKE $3 AND v3 LIKE $4 AND v4 LIKE $5 AND v5 LIKE $6 )
         OR (
             ptype LIKE 'p%' AND v0 LIKE $7 AND v1 LIKE $8 AND v2 LIKE $9 AND v3 LIKE $10 AND v4 LIKE $11 AND v5 LIKE $12 );
             ",
-            g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
-            p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],)
+        g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
+        p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],
+    );
+
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as(&query_string)
         .fetch_all(conn)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
@@ -714,19 +729,20 @@ pub(crate) async fn load_filtered_policy(
 ) -> Result<Vec<CasbinRule>> {
     let (g_filter, p_filter) = filtered_where_values(filter);
 
-    let casbin_rule: Vec<CasbinRule> = sqlx::query_as!(
-        CasbinRule,
+    let query_string = format!(
         "SELECT id, ptype, v0, v1, v2, v3, v4, v5 from  casbin_rule WHERE (
             ptype LIKE 'g%' AND v0 LIKE ? AND v1 LIKE ? AND v2 LIKE ? AND v3 LIKE ? AND v4 LIKE ? AND v5 LIKE ? )
         OR (
             ptype LIKE 'p%' AND v0 LIKE ? AND v1 LIKE ? AND v2 LIKE ? AND v3 LIKE ? AND v4 LIKE ? AND v5 LIKE ? );
             ",
-            g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
-            p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],
-    )
-    .fetch_all(conn)
-    .await
-    .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
+        g_filter[0], g_filter[1], g_filter[2], g_filter[3], g_filter[4], g_filter[5],
+        p_filter[0], p_filter[1], p_filter[2], p_filter[3], p_filter[4], p_filter[5],
+    );
+
+    let casbin_rule: Vec<CasbinRule> = sqlx::query_as(&query_string)
+        .fetch_all(conn)
+        .await
+        .map_err(|err| CasbinError::from(AdapterError(Box::new(Error::SqlxError(err)))))?;
 
     Ok(casbin_rule)
 }
