@@ -36,10 +36,10 @@ pub async fn new_with_table_name(conn: &ConnectionPool, table_name: &str) -> Res
                     v3 VARCHAR NOT NULL,
                     v4 VARCHAR NOT NULL,
                     v5 VARCHAR NOT NULL,
-                    CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
+                    CONSTRAINT unique_key_sqlx_adapter_{} UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                     );
         ",
-        table_name
+        table_name, table_name
     ))
     .execute(conn)
     .await
@@ -61,10 +61,10 @@ pub async fn new_with_table_name(
                     v3 VARCHAR NOT NULL,
                     v4 VARCHAR NOT NULL,
                     v5 VARCHAR NOT NULL,
-                    CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
+                    CONSTRAINT unique_key_sqlx_adapter_{} UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                     );
         ",
-        table_name
+        table_name, table_name
     ))
     .execute(conn)
     .await
@@ -87,9 +87,9 @@ pub async fn new_with_table_name(
                     v4 VARCHAR(128) NOT NULL,
                     v5 VARCHAR(128) NOT NULL,
                     PRIMARY KEY(id),
-                    CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
+                    CONSTRAINT unique_key_sqlx_adapter_{} UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;",
-        table_name
+        table_name, table_name
     ))
     .execute(conn)
     .await
